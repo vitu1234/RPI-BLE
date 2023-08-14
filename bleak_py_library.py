@@ -50,9 +50,11 @@ async def connect_and_read_characteristics(device):
             characteristics_info = []
             connected_device = {
                 "name": device.name,
-                "uuid": str(device.address),
-                "details": str(device.details),
-                "characteristics_info": characteristics_info
+                "identifiers": str(device.address),
+                "connection": "BLE",
+                "protocol":"BLE",
+                "description": str(device.details),
+                "characteristics": characteristics_info
             }
             
             services = await client.get_services()
