@@ -15,8 +15,6 @@ MQTT_USERNAME = "flotta"  # Replace with your MQTT username
 MQTT_PASSWORD = "flotta"  # Replace with your MQTT password
 
 
-device_history = []
-
 # Global MQTT client
 mqtt_client = None
 
@@ -31,7 +29,7 @@ async def connect_or_scan(device_name, device_uuid):
         try:
             print(device.name)
             if (device_name is not None and device.name == device_name) or \
-               (device_uuid is not None and str(device) == device_uuid):
+               (device_uuid is not None and str(device.address) == device_uuid):
                 await connect_and_read_characteristics(device)
                 return True
         except Exception as e:
@@ -46,17 +44,20 @@ async def connect_and_read_characteristics(device):
             if client.is_connected:
                 await client.disconnect()
             await client.connect()
-            
+            print(device.name+"\n")
+            print(str(device.address)+"\n")
             # Add connected device to device history
+            characteristics_info = []
             connected_device = {
                 "name": device.name,
-                "uuid": str(device)
+                "uuid": str(device.address),
+                "details": str(device.details),
+                "characteristics_info": characteristics_info
             }
-            device_history.append(connected_device)
             
             services = await client.get_services()
             
-            characteristics_info = []
+            
             for service in services:
                 
                 print(service.uuid)
@@ -82,14 +83,14 @@ async def connect_and_read_characteristics(device):
 
                             # print(value_str)
                             char_info["value"] = value_str
-                        except Exception as e:
+                        except Exception as err:
                             logger.error(
                                 "  [Characteristic] %s (%s), Error: %s",
                                 char,
                                 ",".join(char.properties),
-                                e,
+                                err,
                             )
-                            print(e)
+                            print(err)
 
                     else:
                         logger.info(
@@ -114,12 +115,15 @@ async def connect_and_read_characteristics(device):
                             print("\n------------\n")
                             print(value_str2)
                             char_info["descriptors"].append(descriptor_info)
-                        except Exception as e:
-                            logger.error("    [Descriptor] %s, Error: %s", descriptor, e)
-                    
+                            if char_info["name"] == "" or char_info["name"] == "Unknown":
+                                char_info["name"] = value_str2
+                        except Exception as err:
+                            logger.error("    [Descriptor] %s, Error: %s", descriptor, err)
+                            print(err)
                     characteristics_info.append(char_info)
-            
-            mqtt_client.publish("ble_scan/characteristics", json.dumps(characteristics_info))
+            connected_device["characteristics_info"] = characteristics_info
+
+            mqtt_client.publish("ble_scan/characteristics", json.dumps(connected_device))
         except Exception as e:
             print(f"Error while reading characteristics: {e}")
              
