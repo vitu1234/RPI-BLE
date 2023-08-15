@@ -1,5 +1,6 @@
 import asyncio
 import argparse
+import datetime
 import json
 import bleak
 import paho.mqtt.client as mqtt
@@ -41,6 +42,10 @@ async def connect_and_read_characteristics(device):
     async with bleak.BleakClient(device) as client:
         print("HAHAHAH")
         try:
+            current_time = datetime.datetime.now().time()
+            time_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
+            
+            
             if client.is_connected:
                 await client.disconnect()
             await client.connect()
@@ -49,12 +54,18 @@ async def connect_and_read_characteristics(device):
             # Add connected device to device history
             characteristics_info = []
             connected_device = {
-                "name": device.name,
-                "identifiers": str(device.address),
-                "connection": "BLE",
-                "protocol":"BLE",
-                "description": str(device.details),
-                "characteristics": characteristics_info
+                "wireless_device_name": device.name,
+                "wireless_device_manufacturer": None,
+                "wireless_device_model": None,
+                "wireless_device_sw_version": None,
+                "wireless_device_identifier": str(device.address),
+                "wireless_device_protocol":"BLE",
+                "wireless_device_connection": "BLE",
+                "wireless_device_battery": None,
+                "wireless_device_availability": None,
+                "wireless_device_description": str(device.details),
+                "wireless_device_last_seen": time_string,
+                "device_properties": characteristics_info
             }
             
             services = await client.get_services()
@@ -64,27 +75,35 @@ async def connect_and_read_characteristics(device):
                 
                 print(service.uuid)
                 print("\n service \n")
-                # print(service.characteristics)
+                
                 
                 for char in service.characteristics:
                     char_info = {
-                        "service_uuid": str(service.uuid),
-                        "char_uuid": str(char.uuid),
-                        "name": char.description,
-                        "value": None,
+                        "property_identifier": str(char.uuid),
+                        "property_service_uuid": str(service.uuid),
+                        "property_name": char.description,
+                        
+                        
+                        "property_access_mode": None,
+                        "property_reading": None,
+                        "property_state": None,
+                        
+                        "property_unit": None,
+                        "property_description": None,
+                        "property_last_seen": time_string,
                         "descriptors": []
                     }
                     
                     
-                    if "notify" in char.properties:
+                    if "notify" in char.properties or "read" in char.properties:
                         print("\n READ \n")
                         
                         try:
+                            char_info["property_access_mode"] = "Read"
+                            
                             value = await client.read_gatt_char(char.uuid)
                             value_str = value.decode("utf-8")  # Decode the bytearray to a string
-
-                            # print(value_str)
-                            char_info["value"] = value_str
+                            char_info["property_reading"] = value_str
                         except Exception as err:
                             logger.error(
                                 "  [Characteristic] %s (%s), Error: %s",
@@ -111,14 +130,12 @@ async def connect_and_read_characteristics(device):
                             value2 = await client.read_gatt_descriptor(descriptor.handle)
                             value_str2 = value2.decode("utf-8")
                             logger.info("    [Descriptor] %s, Value: %r", descriptor, value2)
-                            print("    [Descriptor] %s, Value: %r", descriptor, value2)
                             descriptor_info["descriptor_uuid"] = descriptor.uuid
-                            descriptor_info["value"] = value_str2
-                            print("\n------------\n")
-                            print(value_str2)
+                            descriptor_info["descriptor_value"] = value_str2                         
                             char_info["descriptors"].append(descriptor_info)
-                            if char_info["name"] == "" or char_info["name"] == "Unknown":
-                                char_info["name"] = value_str2
+                            if char_info["property_name"] == "" or char_info["property_name"] == "Unknown":
+                                char_info["property_name"] = value_str2
+                                
                         except Exception as err:
                             logger.error("    [Descriptor] %s, Error: %s", descriptor, err)
                             print(err)
