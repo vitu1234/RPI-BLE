@@ -140,7 +140,7 @@ async def connect_and_read_characteristics(device):
                             logger.error("    [Descriptor] %s, Error: %s", descriptor, err)
                             print(err)
                     characteristics_info.append(char_info)
-            connected_device["characteristics_info"] = characteristics_info
+            connected_device["device_properties"] = characteristics_info
 
             mqtt_client.publish("ble_scan/characteristics", json.dumps(connected_device))
         except Exception as e:
