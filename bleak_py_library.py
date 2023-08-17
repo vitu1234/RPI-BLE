@@ -1,7 +1,8 @@
 import asyncio
-import argparse
 import datetime
 import json
+import threading
+import time
 import bleak
 import paho.mqtt.client as mqtt
 import logging
@@ -142,7 +143,7 @@ async def connect_and_read_characteristics(device):
                     characteristics_info.append(char_info)
             connected_device["device_properties"] = characteristics_info
 
-            mqtt_client.publish("ble_scan/characteristics", json.dumps(connected_device))
+            mqtt_client.publish("device/edge/upstream", json.dumps(connected_device))
         except Exception as e:
             print(f"Error while reading characteristics: {e}")
              
@@ -165,9 +166,22 @@ def on_message(client, userdata, message):
 
 def on_connect(client, userdata, flags, rc):
     print("Connected to MQTT broker.")
-    client.subscribe("vitu/ble_scan/request")
+    client.subscribe("cloud/device/downstream")
 
-def main(args):
+
+
+
+def periodic_task():
+    while True:
+        time.sleep(10)  # Wait for 10 seconds
+        # Call your desired function here
+        print("Running the periodic task...")
+        # You can call the function you want to execute every 10 seconds
+        # For example, you might call connect_or_scan() or any other relevant function
+
+
+
+def main():
     global mqtt_client
     mqtt_client = mqtt.Client()
     mqtt_client.on_connect = on_connect
@@ -179,10 +193,13 @@ def main(args):
     mqtt_client.on_log = lambda client, userdata, level, buf: print(buf)
     mqtt_client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, 60)
     
+    periodic_thread = threading.Thread(target=periodic_task)
+    periodic_thread.daemon = True  # Allow the thread to exit when the main program exits
+    periodic_thread.start()
+
+    mqtt_client.loop_forever()
+    
     mqtt_client.loop_forever()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    args = parser.parse_args()
-    
-    main(args)
+    main()
