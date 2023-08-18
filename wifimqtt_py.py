@@ -73,7 +73,7 @@ def on_message(client, userdata, message):
                 if "state" in property_info:
                     char_info["property_state"] = property_info["state"]
                 if "read" in property_info:
-                    print("EXISTS")
+                    # print("EXISTS")
                     char_info["property_reading"] = property_info["read"]
                 characteristics_info.append(char_info)
                 
