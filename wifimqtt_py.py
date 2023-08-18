@@ -41,7 +41,7 @@ def on_message(client, userdata, message):
                 "wireless_device_manufacturer": payload_json.get("manufacturer"),
                 "wireless_device_model": payload_json.get("model"),
                 "wireless_device_sw_version": None,
-                "wireless_device_identifier": payload_json.get("identifier"),
+                "wireless_device_identifier": payload_json.get("id"),
                 "wireless_device_protocol":"MQTT",
                 "wireless_device_connection": "Wi-Fi",
                 "wireless_device_battery": None,
@@ -60,9 +60,11 @@ def on_message(client, userdata, message):
                 "property_service_uuid": None,
                 "property_name": property_info.get("name"),
                 "property_access_mode": property_info.get("mode"),
-                
+                "wireless_device_identifier": payload_json.get("id"),
                 "property_unit": None,
                 "property_description": None,
+                "property_reading": None,
+                "property_state": None,
                 "property_last_seen": time_string,
                 "descriptors": []
                 }
@@ -70,8 +72,9 @@ def on_message(client, userdata, message):
                  # Check if exists in the property_info
                 if "state" in property_info:
                     char_info["property_state"] = property_info["state"]
-                if "reading" in property_info:
-                    char_info["property_reading"] = property_info["reading"]
+                if "read" in property_info:
+                    print("EXISTS")
+                    char_info["property_reading"] = property_info["read"]
                 characteristics_info.append(char_info)
                 
         else:
