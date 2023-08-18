@@ -1,5 +1,5 @@
 import asyncio
-import datetime
+from datetime import datetime
 import json
 import os
 import threading
@@ -47,7 +47,7 @@ async def connect_and_read_characteristics(device):
     async with bleak.BleakClient(device) as client:
         print("HAHAHAH")
         try:
-            current_time = datetime.datetime.now().time()
+            current_time = datetime.now()
             time_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
             
             
@@ -163,7 +163,7 @@ async def connect_and_read_characteristics(device):
                     characteristics_info.append(char_info)
             connected_device["device_properties"] = characteristics_info
 
-            mqtt_client.publish("device/edge/upstream", json.dumps(connected_device))
+            mqtt_client.publish("plugin/edge/upstream", json.dumps(connected_device))
         except Exception as e:
             print(f"Error while reading characteristics: {e}")
              
@@ -186,7 +186,7 @@ def on_message(client, userdata, message):
 
 def on_connect(client, userdata, flags, rc):
     print("Connected to MQTT broker.")
-    client.subscribe("cloud/device/downstream")
+   client.subscribe("cloud/plugin/downstream/wifi")
 def periodic_task():
     while True:
         time.sleep(PERIODIC_DELAY)  # Wait for 10 seconds
