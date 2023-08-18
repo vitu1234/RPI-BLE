@@ -17,7 +17,7 @@ MQTT_BROKER_PORT = 1883
 MQTT_USERNAME = "flotta"  # Replace with your MQTT username
 MQTT_PASSWORD = "flotta"  # Replace with your MQTT password
 
-FLOTTA_SQLITE_DB = os.getenv("FLOTTA_SQLITE_DB", "127.0.0.1")
+FLOTTA_SQLITE_DB = os.getenv("FLOTTA_SQLITE_DB", "../flotta-device-worker/flotta.db")
 PERIODIC_DELAY = os.getenv("PERIODIC_DELAY", 60)
 
 
