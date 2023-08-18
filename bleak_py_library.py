@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import json
+import os
 import threading
 import time
 import bleak
@@ -15,6 +16,9 @@ MQTT_BROKER_HOST = "192.168.12.225"
 MQTT_BROKER_PORT = 1883
 MQTT_USERNAME = "flotta"  # Replace with your MQTT username
 MQTT_PASSWORD = "flotta"  # Replace with your MQTT password
+
+FLOTTA_SQLITE_DB = os.getenv("FLOTTA_SQLITE_DB", "127.0.0.1")
+PERIODIC_DELAY = os.getenv("PERIODIC_DELAY", 60)
 
 
 # Global MQTT client
@@ -115,6 +119,22 @@ async def connect_and_read_characteristics(device):
                             print(err)
 
                     else:
+                        
+                        try:
+                            char_info["property_access_mode"] = "ReadWrite"
+                            
+                            value = await client.read_gatt_char(char.uuid)
+                            value_str = value.decode("utf-8")  # Decode the bytearray to a string
+                            char_info["property_state"] = value_str
+                        except Exception as err:
+                            logger.error(
+                                "  [Characteristic] %s (%s), Error: %s",
+                                char,
+                                ",".join(char.properties),
+                                err,
+                            )
+                            print(err)
+                        
                         logger.info(
                             "  [Characteristic] %s (%s)", char, ",".join(char.properties)
                         )
@@ -150,11 +170,11 @@ async def connect_and_read_characteristics(device):
         
 def on_message(client, userdata, message):
     payload = message.payload.decode("utf-8")
-    
+        
     try:
         payload_json = json.loads(payload)
-        device_name = payload_json.get("device_name")
-        device_uuid = payload_json.get("device_uuid")
+        device_name = payload_json.get("wireless_device_name")
+        device_uuid = payload_json.get("wireless_device_identifier")
         
         if device_name or device_uuid:
             asyncio.run(connect_or_scan(device_name, device_uuid))
@@ -167,13 +187,9 @@ def on_message(client, userdata, message):
 def on_connect(client, userdata, flags, rc):
     print("Connected to MQTT broker.")
     client.subscribe("cloud/device/downstream")
-
-
-
-
 def periodic_task():
     while True:
-        time.sleep(10)  # Wait for 10 seconds
+        time.sleep(PERIODIC_DELAY)  # Wait for 10 seconds
         # Call your desired function here
         print("Running the periodic task...")
         # You can call the function you want to execute every 10 seconds
