@@ -88,9 +88,9 @@ def on_message(client, userdata, message):
             wireless_device_identifier = payload_json.get("wireless_device_identifier")
             device_properties = payload_json.get("device_properties")
     
-            print("Wireless Device Identifier:", wireless_device_identifier)
-            print("Wireless Device Name:", wireless_device_name)
-            
+            # print("Wireless Device Identifier:", wireless_device_identifier)
+            # print("Wireless Device Name:", wireless_device_name)
+             
             if device_properties is not None:
                 # print("Device Properties:")
                 for property_info in device_properties:               
