@@ -107,7 +107,7 @@ async def connect_and_read_characteristics(device):
                             
                             value = await client.read_gatt_char(char.uuid)
                             value_str = value.decode("utf-8")  # Decode the bytearray to a string
-                            char_info["property_reading"] = value_str
+                            char_info["property_reading"] = value_str.strip()
                         except Exception as err:
                             logger.error(
                                 "  [Characteristic] %s (%s), Error: %s",
@@ -117,14 +117,14 @@ async def connect_and_read_characteristics(device):
                             )
                             print(err)
 
-                    else:
+                    elif "write" in char.properties :
                         
                         try:
                             char_info["property_access_mode"] = "ReadWrite"
                             
                             value = await client.read_gatt_char(char.uuid)
                             value_str = value.decode("utf-8")  # Decode the bytearray to a string
-                            char_info["property_state"] = value_str
+                            char_info["property_state"] = value_str.strip()
                         except Exception as err:
                             logger.error(
                                 "  [Characteristic] %s (%s), Error: %s",
@@ -133,7 +133,7 @@ async def connect_and_read_characteristics(device):
                                 err,
                             )
                             print(err)
-                        
+                            
                         logger.info(
                             "  [Characteristic] %s (%s)", char, ",".join(char.properties)
                         )
@@ -214,8 +214,9 @@ async def periodic_task():
                 "wireless_device_name": d.address
             }
             discovered_unpaired_devices.append(discovered_unpaired_device)
-        await asyncio.sleep(PERIODIC_DELAY)  # Wait for 10 seconds before the next iteration
+        # await asyncio.sleep(PERIODIC_DELAY)  # Wait for 10 seconds before the next iteration
         mqtt_client.publish("plugin/edge/upstream/ble/unpaired", json.dumps(discovered_unpaired_devices)) #prefix should be discovered maybe 
+        time.sleep(PERIODIC_DELAY)
 
 
 def main():

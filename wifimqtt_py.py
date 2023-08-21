@@ -123,6 +123,7 @@ def periodic_task():
 def publishData(topic, payload):
     # print("publish to: "+topic)
     mqtt_client.publish(topic, payload)
+    time.sleep(PERIODIC_DELAY)
 
 def main():
     global mqtt_client
