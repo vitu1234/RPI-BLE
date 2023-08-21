@@ -72,6 +72,7 @@ def on_message(client, userdata, message):
                     
                     # Check if exists in the property_info
                     if "state" in property_info:
+                        print("PUSHING--------------"+property_info["state"])
                         char_info["property_state"] = property_info["state"]
                     if "read" in property_info:
                         # print("EXISTS")

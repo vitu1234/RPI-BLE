@@ -33,7 +33,6 @@ async def connect_or_scan(device_name, device_uuid):
     
     for device in devices:
         try:
-            print(device.name)
             if (device_name is not None and device.name == device_name) or \
                (device_uuid is not None and str(device.address) == device_uuid):
                 await connect_and_read_characteristics(device)
@@ -101,7 +100,7 @@ async def connect_and_read_characteristics(device):
                     
                     
                     if "notify" in char.properties or "read" in char.properties:
-                        print("\n READ \n")
+                        # print("\n READ \n")
                         
                         try:
                             char_info["property_access_mode"] = "Read"
@@ -169,32 +168,54 @@ async def connect_and_read_characteristics(device):
              
         
 def on_message(client, userdata, message):
+    print("RECEIVING DATA...........\n")
+    print("MQTT Topic: \n", message.topic)  # Print the MQTT topic
+
     payload = message.payload.decode("utf-8")
+    payload_json = json.loads(payload)
+    current_time = datetime.now()
+    time_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
+    
         
     try:
-        payload_json = json.loads(payload)
-        device_name = payload_json.get("wireless_device_name")
-        device_uuid = payload_json.get("wireless_device_identifier")
+        # payload_json = json.loads(payload)
+        # device_name = payload_json.get("wireless_device_name")
+        # device_uuid = payload_json.get("wireless_device_identifier")
         
-        if device_name or device_uuid:
-            asyncio.run(connect_or_scan(device_name, device_uuid))
-        else:
-            print("Invalid payload format.")
+        # if device_name or device_uuid:
+        #     asyncio.run(connect_or_scan(device_name, device_uuid))
+        # else:
+        #     print("Invalid payload format.")
+        if message.topic == "cloud/plugin/downstream/ble/devices/verified":
+            print("am in the topic")
+            for item in payload_json:
+                asyncio.run(connect_or_scan(item["wireless_device_identifier"], item["wireless_device_name"]))
 
     except json.JSONDecodeError:
         print("Invalid JSON payload.")
 
 def on_connect(client, userdata, flags, rc):
     print("Connected to MQTT broker.")
-   client.subscribe("cloud/plugin/downstream/wifi")
-def periodic_task():
+    client.subscribe("cloud/plugin/downstream/ble")
+    client.subscribe("cloud/plugin/downstream/ble/devices/verified")
+async def periodic_task():
     while True:
-        time.sleep(PERIODIC_DELAY)  # Wait for 10 seconds
+        # time.sleep(PERIODIC_DELAY)  
         # Call your desired function here
         print("Running the periodic task...")
-        # You can call the function you want to execute every 10 seconds
-        # For example, you might call connect_or_scan() or any other relevant function
-
+        print("scanning BLE devices for 5 seconds, please wait...")
+        
+        discovered_unpaired_devices = []
+        
+        devices = await bleak.BleakScanner.discover(return_adv=True)
+        for d, a in devices.values():
+            discovered_unpaired_device = {
+                "wireless_device_identifier": d.name,
+                "wireless_device_name": d.address
+            }
+            discovered_unpaired_devices.append(discovered_unpaired_device)
+        await asyncio.sleep(PERIODIC_DELAY)  # Wait for 10 seconds before the next iteration
+        mqtt_client.publish("plugin/edge/upstream/ble/unpaired", json.dumps(discovered_unpaired_devices)) #prefix should be discovered maybe 
 
 
 def main():
@@ -204,18 +225,18 @@ def main():
     mqtt_client.on_message = on_message
     mqtt_client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)  # Set MQTT username and password
 
-
-
     mqtt_client.on_log = lambda client, userdata, level, buf: print(buf)
     mqtt_client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, 60)
     
-    periodic_thread = threading.Thread(target=periodic_task)
-    periodic_thread.daemon = True  # Allow the thread to exit when the main program exits
-    periodic_thread.start()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    periodic_task_thread = threading.Thread(target=loop.run_until_complete, args=(periodic_task(),))
+    periodic_task_thread.daemon = True
+    periodic_task_thread.start()
 
     mqtt_client.loop_forever()
+    while True:
+        time.sleep(1)
     
-    mqtt_client.loop_forever()
-
 if __name__ == "__main__":
     main()
